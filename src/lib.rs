@@ -126,7 +126,7 @@ impl wbg_rayon_PoolBuilder {
 
 #[wasm_bindgen(js_name = buildThreadPool)]
 #[doc(hidden)]
-pub fn build_thread_pool(mut builder: &mut wbg_rayon_PoolBuilder) {
+pub fn build_thread_pool(builder: &mut wbg_rayon_PoolBuilder) {
     builder.build();
 }
 
