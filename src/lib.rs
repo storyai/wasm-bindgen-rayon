@@ -47,15 +47,28 @@ pub struct wbg_rayon_PoolBuilder {
 
 #[cfg_attr(
     not(feature = "no-bundler"),
-    wasm_bindgen(module = "/src/workerHelpers.js")
+    wasm_bindgen(module = "/src/createRayonWorkers.js")
 )]
-#[cfg_attr(
-    feature = "no-bundler",
-    wasm_bindgen(module = "/src/workerHelpers.no-bundler.js")
-)]
+// #[cfg_attr(
+//     feature = "no-bundler",
+//     wasm_bindgen(module = "/src/createRayonWorkers.no-bundler.js")
+// )]
 extern "C" {
-    #[wasm_bindgen(js_name = startWorkers)]
-    fn start_workers(module: JsValue, memory: JsValue, builder: wbg_rayon_PoolBuilder) -> Promise;
+    /// Identity function to create a JavaScript value with module, memory, builder attrs
+    #[wasm_bindgen(js_name = manualCreateWorkerInitMessage)]
+    fn manual_create_worker_init_message(
+        module: JsValue,
+        memory: JsValue,
+        builder: wbg_rayon_PoolBuilder,
+    ) -> JsValue;
+}
+
+// just need to make sure the file is copied into the wasm-bindgen directory
+#[wasm_bindgen(module = "/src/rayonThreadWorker.js")]
+extern "C" {
+    /// Identity function to create a JavaScript value with module, memory, builder attrs
+    #[wasm_bindgen(js_name = iJustWantToBeIncludedInTheWasmBindgenOutputs)]
+    fn include_rayon_thread_worker();
 }
 
 #[wasm_bindgen]
@@ -112,10 +125,17 @@ impl wbg_rayon_PoolBuilder {
     }
 }
 
-#[wasm_bindgen(js_name = initThreadPool)]
+#[wasm_bindgen(js_name = buildThreadPool)]
 #[doc(hidden)]
-pub fn init_thread_pool(num_threads: usize) -> Promise {
-    start_workers(
+pub fn build_thread_pool(mut builder: &mut wbg_rayon_PoolBuilder) {
+    builder.build();
+}
+
+#[wasm_bindgen(js_name = manualThreadWorkerInitMessage)]
+#[doc(hidden)]
+pub fn manual_thread_worker_init_message(num_threads: usize) -> JsValue {
+    include_rayon_thread_worker();
+    manual_create_worker_init_message(
         wasm_bindgen::module(),
         wasm_bindgen::memory(),
         wbg_rayon_PoolBuilder::new(num_threads),
