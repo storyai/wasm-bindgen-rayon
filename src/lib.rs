@@ -26,7 +26,6 @@ compile_error!("Did you forget to enable `atomics` and `bulk-memory` features as
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use js_sys::Promise;
 use spmc::{channel, Receiver, Sender};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
