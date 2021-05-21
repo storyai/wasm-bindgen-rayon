@@ -8,3 +8,6 @@ declare type WasmBindgenRayonWorkerInitMessage = {
   memory: WebAssembly.Memory
   receiver: number
 }
+declare type WasmBindgenRayonWorkerResponseReadyMessage = {
+  type: "wasm_bindgen_worker_ready"
+}
