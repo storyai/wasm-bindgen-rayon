@@ -44,7 +44,7 @@ waitForMsgType(self, "wasm_bindgen_worker_init").then(async (data) => {
     const exitReady = measure(`worker thread ready; will post "wasm_bindgen_worker_ready" and then start the worker (which blocks the thread)`);
     // # Note 1
     // Our JS should have been generated in
-    // `[out-dir]/snippets/wasm-bindgen-rayon-[hash]/rayonThreadWorker.js`,
+    // `[out-dir]/snippets/wasm-bindgen-rayon-[hash]/workerHelpers.js`,
     // resolve the main module via `../../..`.
     //
     // This might need updating if the generated structure changes on wasm-bindgen
