@@ -1,5 +1,26 @@
 `wasm-bindgen-rayon` is an adapter for enabling [Rayon](https://github.com/rayon-rs/rayon)-based concurrency on the Web with WebAssembly (via [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen), Web Workers and SharedArrayBuffer support).
 
+### Story.ai adaptation
+
+This is the [Story.ai](https://github.com/storyai) adaptation of the `wasm-bindgen-rayon` crate.
+This code is not published to crates.io, and we do not have any intention of this code being contributed
+to [the existing `wasm-bindgen-rayon` repo](https://github.com/GoogleChromeLabs/wasm-bindgen-rayon).
+
+This fork and the descriptions of how `wasm-bindgen-rayon` works are based off of the files from [May 2021, v1.0.3, @9d14d78](https://github.com/GoogleChromeLabs/wasm-bindgen-rayon/tree/9d14d78124d528b71ba326314845cd2bc84a08bb)
+
+With that on the table, here's what you'll find different about our fork:
+
+ * We've added User Timing measurements to make it easier to observe the sequence of events taken to load the thread workers. (use DevTools Performance panel)
+ * We've adapted workerHelpers.js to TypeScript (`workerHelpers.js` can be regenerated with a `npx tsc` call)
+ * We've made it possible to create the rayon thread web workers manually
+  * As of May 2021, Chromium does not support reporting User Timings originating from nested dedicated workers (web workers created by web workers)
+  * In our product,
+    * Our main WASM module must be managed from within a dedicated worker to not block input on the main thread
+    * `wasm-bindgen-rayon` is set up so `workerHelpers.js` is used to [create `WebWorker`s directly from a call to `startWorkers`](https://github.com/GoogleChromeLabs/wasm-bindgen-rayon/blob/9d14d78124d528b71ba326314845cd2bc84a08bb/src/workerHelpers.js#L79-L100)
+    * `startWorkers` is [called from `lib.rs` (the wasm context)](https://github.com/GoogleChromeLabs/wasm-bindgen-rayon/blob/9d14d78124d528b71ba326314845cd2bc84a08bb/src/lib.rs#L118-L122)
+    * So, since our wasm context is in a web worker, this call to `startWorkers` will result in this sort of nested dedicated workers which seem to have limitations in chromium
+    * We've opened [a bug for chromium to get attention on this issue](https://bugs.chromium.org/p/chromium/issues/detail?id=1211924)
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 <!-- param::isNotitle::true:: -->

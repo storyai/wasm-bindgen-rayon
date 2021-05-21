@@ -44,35 +44,48 @@ pub struct wbg_rayon_PoolBuilder {
     receiver: Receiver<rayon::ThreadBuilder>,
 }
 
-#[cfg_attr(
-    not(feature = "no-bundler"),
-    wasm_bindgen(module = "/src/createRayonWorkers.js")
-)]
-// #[cfg_attr(
-//     feature = "no-bundler",
-//     wasm_bindgen(module = "/src/createRayonWorkers.no-bundler.js")
-// )]
+#[wasm_bindgen(module = "/src/workerHelpers.js")]
 extern "C" {
     /// Identity function to create a JavaScript value with module, memory, builder attrs
-    #[wasm_bindgen(js_name = manualCreateWorkerInitMessage)]
-    fn manual_create_worker_init_message(
+    #[wasm_bindgen(js_name = createWorkerInitMessage)]
+    fn js_create_worker_init_message(
         module: JsValue,
         memory: JsValue,
         builder: wbg_rayon_PoolBuilder,
     ) -> JsValue;
 }
 
-// just need to make sure the file is copied into the wasm-bindgen directory
-#[wasm_bindgen(module = "/src/rayonThreadWorker.js")]
-extern "C" {
-    /// Identity function to create a JavaScript value with module, memory, builder attrs
-    #[wasm_bindgen(js_name = iJustWantToBeIncludedInTheWasmBindgenOutputs)]
-    fn include_rayon_thread_worker();
+mod span {
+    //! Basic [Drop] oriented measurements using the imported js measure functions.
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen(module = "/src/workerHelpers.js")]
+    extern "C" {
+        /// Measure function to make it easier to understand the order which things are loading
+        /// Returns an exit function which should be passed to [exit_measure] to finish
+        #[wasm_bindgen(js_name = measure)]
+        fn js_measure(name: &str) -> JsValue;
+        /// Exits a measurement by calling the function returned from [measure]
+        #[wasm_bindgen(js_name = exitMeasure)]
+        fn js_exit_measure(exit_fn: JsValue);
+    }
+    pub(super) struct MeasureSpan(Option<wasm_bindgen::JsValue>);
+    impl Drop for MeasureSpan {
+        fn drop(&mut self) {
+            if let Some(exit_fn) = self.0.take() {
+                js_exit_measure(exit_fn);
+            }
+        }
+    }
+    pub(super) fn measure(name: &str) -> MeasureSpan {
+        MeasureSpan(Some(js_measure(name)))
+    }
 }
 
 #[wasm_bindgen]
 impl wbg_rayon_PoolBuilder {
     fn new(num_threads: usize) -> Self {
+        let _exit = span::measure("PoolBuilder::new");
         let (sender, receiver) = channel();
         Self {
             num_threads,
@@ -106,6 +119,7 @@ impl wbg_rayon_PoolBuilder {
     // Important: it must take `self` by reference, otherwise
     // `start_worker_thread` will try to receive a message on a moved value.
     pub fn build(&mut self) {
+        let _exit = span::measure("PoolBuilder::build");
         rayon::ThreadPoolBuilder::new()
             .num_threads(self.num_threads)
             // We could use postMessage here instead of Rust channels,
@@ -127,14 +141,15 @@ impl wbg_rayon_PoolBuilder {
 #[wasm_bindgen(js_name = buildThreadPool)]
 #[doc(hidden)]
 pub fn build_thread_pool(builder: &mut wbg_rayon_PoolBuilder) {
+    let _exit = span::measure("build_thread_pool");
     builder.build();
 }
 
 #[wasm_bindgen(js_name = manualThreadWorkerInitMessage)]
 #[doc(hidden)]
 pub fn manual_thread_worker_init_message(num_threads: usize) -> JsValue {
-    include_rayon_thread_worker();
-    manual_create_worker_init_message(
+    let _exit = span::measure("manual_thread_worker_init_message");
+    js_create_worker_init_message(
         wasm_bindgen::module(),
         wasm_bindgen::memory(),
         wbg_rayon_PoolBuilder::new(num_threads),
@@ -144,11 +159,14 @@ pub fn manual_thread_worker_init_message(num_threads: usize) -> JsValue {
 #[wasm_bindgen]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 #[doc(hidden)]
+/// Executes the main loop for the received thread. This will not return until the thread pool is dropped.
 pub fn wbg_rayon_start_worker(receiver: *const Receiver<rayon::ThreadBuilder>)
 where
     // Statically assert that it's safe to accept `Receiver` from another thread.
     Receiver<rayon::ThreadBuilder>: Sync,
 {
+    let exit =
+        span::measure("wbg_rayon_start_worker() received thread builder and will start blocking");
     // This is safe, because we know it came from a reference to PoolBuilder,
     // allocated on the heap by wasm-bindgen and dropped only once all the
     // threads are running.
@@ -159,7 +177,8 @@ where
     let receiver = unsafe { &*receiver };
     // Wait for a task (`ThreadBuilder`) on the channel, and, once received,
     // start executing it.
-    //
+    let thread_builder = receiver.recv().unwrap_throw();
+    drop(exit);
     // On practice this will start running Rayon's internal event loop.
-    receiver.recv().unwrap_throw().run()
+    thread_builder.run()
 }
