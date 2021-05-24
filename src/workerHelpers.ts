@@ -16,6 +16,13 @@ function waitForMsgType<Data extends { type: string } = { type: string }>(
   })
 }
 
+function postResponseMessage(
+  message: WasmBindgenRayonWorkerResponsePanicMessage | WasmBindgenRayonWorkerResponseReadyMessage,
+) {
+  // @ts-ignore do not need to specify target origin
+  postMessage(message)
+}
+
 let lastMarkID = 0
 // @internal
 export function measure(name: string) {
@@ -75,10 +82,15 @@ waitForMsgType<WasmBindgenRayonWorkerInitMessage>(self, "wasm_bindgen_worker_ini
   const pkg = await import("../../..")
   await pkg.default(data.module, data.memory)
   exitReady()
-  // @ts-ignore do not need to specify target origin
-  postMessage({ type: "wasm_bindgen_worker_ready" })
+  postResponseMessage({ type: "wasm_bindgen_worker_ready" })
   // this call blocks here
-  pkg.wbg_rayon_start_worker(data.receiver)
+  try {
+    pkg.wbg_rayon_start_worker(data.receiver)
+  } catch (err) {
+    // surface panics occuring in the thread
+    // this is contingent on calling `wasm_bindgen::throw_str("panic");` from the WASM side
+    postResponseMessage({ type: "wasm_bindgen_worker_panic", message: err.toString() })
+  }
 })
 //#endregion rayonThreadWorker
 

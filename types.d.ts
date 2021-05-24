@@ -11,3 +11,7 @@ declare type WasmBindgenRayonWorkerInitMessage = {
 declare type WasmBindgenRayonWorkerResponseReadyMessage = {
   type: "wasm_bindgen_worker_ready"
 }
+declare type WasmBindgenRayonWorkerResponsePanicMessage = {
+  type: "wasm_bindgen_worker_panic"
+  message: string
+}
