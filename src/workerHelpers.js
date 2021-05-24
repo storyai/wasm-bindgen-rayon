@@ -19,7 +19,7 @@ export function measure(name) {
     const markName = `wbgr-${moduleID}-${++lastMarkID}`;
     performance.mark(markName);
     return () => {
-        performance.measure(`(wbg-rayon) [${usedAs.join("; ")} #${moduleID}] ${name}`, markName);
+        performance.measure(`|${name}| (wbg-rayon) [${usedAs.join("; ")} #${moduleID}]`, markName);
     };
 }
 // @internal

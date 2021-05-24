@@ -22,7 +22,7 @@ export function measure(name: string) {
   const markName = `wbgr-${moduleID}-${++lastMarkID}`
   performance.mark(markName)
   return () => {
-    performance.measure(`(wbg-rayon) [${usedAs.join("; ")} #${moduleID}] ${name}`, markName)
+    performance.measure(`|${name}| (wbg-rayon) [${usedAs.join("; ")} #${moduleID}]`, markName)
   }
 }
 // @internal
@@ -46,7 +46,9 @@ const exitWorkerInit = measure(`worker received "wasm_bindgen_worker_init" messa
 waitForMsgType<WasmBindgenRayonWorkerInitMessage>(self, "wasm_bindgen_worker_init").then(async (data) => {
   usedAs.push("thread")
   exitWorkerInit()
-  const exitReady = measure(`worker thread ready; will post "wasm_bindgen_worker_ready" and then start the worker (which blocks the thread)`)
+  const exitReady = measure(
+    `worker thread ready; will post "wasm_bindgen_worker_ready" and then start the worker (which blocks the thread)`,
+  )
   // # Note 1
   // Our JS should have been generated in
   // `[out-dir]/snippets/wasm-bindgen-rayon-[hash]/workerHelpers.js`,
