@@ -12,7 +12,7 @@
 // so we can check only presence of the former. This should be enough to catch most common
 // mistake (forgetting to pass `RUSTFLAGS` altogether).
 #[cfg(not(target_feature = "atomics"))]
-compile_error!("Did you forget to enable `atomics` and `bulk-memory` features as outlined in wasm-bindgen-rayon README?");
+compile_error!("Did you forget to enable `atomics`, `bulk-memory`, and `mutable-globals` features as outlined in wasm-bindgen-rayon README?");
 
 /**
  * Copyright 2021 Google Inc. All Rights Reserved.
