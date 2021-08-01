@@ -73,12 +73,12 @@ mod span {
     impl Drop for MeasureSpan {
         fn drop(&mut self) {
             if let Some(exit_fn) = self.0.take() {
-                unsafe { js_exit_measure(exit_fn) };
+                js_exit_measure(exit_fn);
             }
         }
     }
     pub(super) fn measure(name: &str) -> MeasureSpan {
-        MeasureSpan(Some(unsafe { js_measure(name) }))
+        MeasureSpan(Some(js_measure(name)))
     }
 }
 
@@ -149,13 +149,12 @@ pub fn build_thread_pool(builder: &mut wbg_rayon_PoolBuilder) {
 #[doc(hidden)]
 pub fn manual_thread_worker_init_message(num_threads: usize) -> JsValue {
     let _exit = span::measure("manual_thread_worker_init_message");
-    unsafe {
-        js_create_worker_init_message(
-            wasm_bindgen::module(),
-            wasm_bindgen::memory(),
-            wbg_rayon_PoolBuilder::new(num_threads),
-        )
-    }
+
+    js_create_worker_init_message(
+        wasm_bindgen::module(),
+        wasm_bindgen::memory(),
+        wbg_rayon_PoolBuilder::new(num_threads),
+    )
 }
 
 #[wasm_bindgen]
